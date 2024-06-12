@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"log"
+	"flag"
 	"net/http"
 	"rss-reader/globals"
 	"rss-reader/models"
@@ -14,11 +15,25 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var (
+	help bool
+	address string
+	port string
+)
+
 func init() {
+	flag.BoolVar(&help, "help", false, "显示帮助")
+	flag.StringVar(&address, "address", "", "监听地址")
+	flag.StringVar(&port, "port", "8080", "监听端口")
 	globals.Init()
 }
 
 func main() {
+	flag.Parse()
+	if help {
+		flag.PrintDefaults()
+		return
+	}
 	go utils.UpdateFeeds()
 	go utils.WatchConfigFileChanges("config.json")
 	http.HandleFunc("/feeds", getFeedsHandler)
@@ -29,7 +44,9 @@ func main() {
 	//加载静态文件
 	fs := http.FileServer(http.FS(globals.DirStatic))
 	http.Handle("/static/", fs)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	inf := address + ":" + port
+	log.Print("Listening http://" + inf)
+	log.Fatal(http.ListenAndServe(inf, nil))
 }
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
